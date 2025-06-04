@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ThreadSwipes - Sign Up</title>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+  <!-- Firebase scripts first -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
   <div>
@@ -20,36 +22,58 @@
     <p id="message"></p>
   </div>
 
+  <!-- ✅ Only run this script AFTER Firebase is loaded -->
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
-      authDomain: "threadswipes.firebaseapp.com",
-      projectId: "threadswipes",
-      storageBucket: "threadswipes.firebasestorage.app",
-      messagingSenderId: "238965033362",
-      appId: "1:238965033362:web:93b3ada5ccb0b0f1d9994b",
-      measurementId: "G-J49VZR1CH7"
-    };
+    document.addEventListener("DOMContentLoaded", () => {
+      // ✅ Firebase config
+      const firebaseConfig = {
+        apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
+        authDomain: "threadswipes.firebaseapp.com",
+        projectId: "threadswipes",
+        storageBucket: "threadswipes.firebasestorage.app",
+        messagingSenderId: "238965033362",
+        appId: "1:238965033362:web:93b3ada5ccb0b0f1d9994b",
+        measurementId: "G-J49VZR1CH7"
+      };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+      // ✅ Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
 
-    // Sign up logic
-    document.getElementById('signup-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      // ✅ Form submission handler
+      const form = document.getElementById('signup-form');
       const messageEl = document.getElementById('message');
 
-      try {
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        await userCredential.user.sendEmailVerification();
-        messageEl.textContent = "Verification email sent! Please check your inbox.";
-      } catch (error) {
-        console.error(error);
-        messageEl.textContent = error.message;
-      }
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        messageEl.textContent = "Creating account...";
+
+        try {
+          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+          await userCredential.user.sendEmailVerification();
+          messageEl.style.color = "green";
+          messageEl.textContent = "✅ Verification email sent! Please check your inbox.";
+        } catch (error) {
+          console.error("Signup error:", error);
+          messageEl.style.color = "red";
+
+          switch (error.code) {
+            case "auth/weak-password":
+              messageEl.textContent = "Password should be at least 6 characters.";
+              break;
+            case "auth/email-already-in-use":
+              messageEl.textContent = "This email is already registered.";
+              break;
+            case "auth/invalid-email":
+              messageEl.textContent = "Invalid email format.";
+              break;
+            default:
+              messageEl.textContent = "Error: " + error.message;
+          }
+        }
+      });
     });
   </script>
 </body>

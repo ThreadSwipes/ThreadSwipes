@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Post a Thread - ThreadSwipes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ThreadSwipes - Post & Feed</title>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -11,19 +11,28 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <h1>Post a Thread</h1>
+  <header>
+    <div id="username-display">Loading...</div>
+  </header>
+  <main>
+    <div id="thread-display">
+      <div id="thread-user"></div>
+      <div id="thread-content">Loading threads...</div>
+    </div>
 
-  <div id="auth-status"></div>
+    <div id="nav-buttons">
+      <button id="prev-thread">⬆ Previous</button>
+      <button id="next-thread">⬇ Next</button>
+    </div>
 
-  <form id="thread-form" style="display: none;">
-    <textarea id="thread-content" placeholder="What's on your mind?" required></textarea><br>
-    <button type="submit">Post</button>
-  </form>
-
-  <p id="message"></p>
+    <form id="post-form" style="display:none;">
+      <textarea id="thread-input" placeholder="What's on your mind?" required></textarea>
+      <button type="submit">Post Thread</button>
+      <p id="message"></p>
+    </form>
+  </main>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
       authDomain: "threadswipes.firebaseapp.com",
@@ -34,51 +43,126 @@
       measurementId: "G-J49VZR1CH7"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const form = document.getElementById("thread-form");
-    const authStatus = document.getElementById("auth-status");
-    const messageEl = document.getElementById("message");
+    const usernameDisplay = document.getElementById('username-display');
+    const threadUser = document.getElementById('thread-user');
+    const threadContent = document.getElementById('thread-content');
+    const prevBtn = document.getElementById('prev-thread');
+    const nextBtn = document.getElementById('next-thread');
+    const postForm = document.getElementById('post-form');
+    const threadInput = document.getElementById('thread-input');
+    const messageEl = document.getElementById('message');
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        authStatus.innerText = "Logged in as: " + user.email;
-        form.style.display = "block";
+    let threads = [];
+    let currentIndex = 0;
+    let currentUserData = null;
+
+    async function loadThreads() {
+      threads = [];
+      const snapshot = await db.collection('threads').orderBy('createdAt', 'desc').get();
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        let username = 'Unknown';
+        try {
+          const userDoc = await db.collection('users').doc(data.userId).get();
+          if (userDoc.exists) {
+            username = userDoc.data().username || 'Unknown';
+          }
+        } catch (e) {
+          console.error("Error loading username:", e);
+        }
+        threads.push({
+          id: doc.id,
+          content: data.content,
+          userId: data.userId,
+          createdAt: data.createdAt,
+          username: username
+        });
+      }
+      if (threads.length === 0) {
+        threadUser.textContent = "";
+        threadContent.textContent = "No threads yet. Post the first one!";
       } else {
-        authStatus.innerHTML = 'You must <a href="index.html">sign in</a> to post.';
-        form.style.display = "none";
+        currentIndex = 0;
+        showThread(currentIndex);
+      }
+    }
+
+    function showThread(index) {
+      if (threads.length === 0) return;
+      const t = threads[index];
+      threadUser.textContent = '@' + t.username;
+      threadContent.textContent = t.content;
+    }
+
+    function prevThread() {
+      if (threads.length === 0) return;
+      currentIndex = (currentIndex - 1 + threads.length) % threads.length;
+      showThread(currentIndex);
+    }
+
+    function nextThread() {
+      if (threads.length === 0) return;
+      currentIndex = (currentIndex + 1) % threads.length;
+      showThread(currentIndex);
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          currentUserData = userDoc.data();
+          usernameDisplay.textContent = "@" + (currentUserData.username || "User");
+          postForm.style.display = "block";
+        } else {
+          usernameDisplay.textContent = user.email;
+          postForm.style.display = "none";
+        }
+        loadThreads();
+      } else {
+        usernameDisplay.textContent = 'Not logged in';
+        postForm.style.display = "none";
+        threadUser.textContent = "";
+        threadContent.textContent = "Please log in to see and post threads.";
       }
     });
 
-    form.addEventListener("submit", async (e) => {
+    postForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const content = document.getElementById("thread-content").value.trim();
+      const content = threadInput.value.trim();
       if (!content) return;
 
       const user = auth.currentUser;
       if (!user) {
-        messageEl.textContent = "You must be signed in to post.";
+        messageEl.style.color = 'red';
+        messageEl.textContent = "You must be logged in to post.";
         return;
       }
 
       try {
-        await db.collection("threads").add({
+        await db.collection('threads').add({
           userId: user.uid,
           content: content,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        messageEl.style.color = "green";
-        messageEl.textContent = "✅ Thread posted!";
-        form.reset();
+        messageEl.style.color = 'green';
+        messageEl.textContent = "Thread posted!";
+        threadInput.value = "";
+        await loadThreads();
+        currentIndex = 0;
+        showThread(currentIndex);
       } catch (error) {
         console.error("Error posting thread:", error);
-        messageEl.style.color = "red";
-        messageEl.textContent = "Error: " + error.message;
+        messageEl.style.color = 'red';
+        messageEl.textContent = "Error posting thread: " + error.message;
       }
     });
+
+    prevBtn.addEventListener('click', prevThread);
+    nextBtn.addEventListener('click', nextThread);
   </script>
 </body>
 </html>

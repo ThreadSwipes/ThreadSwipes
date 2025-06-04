@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Post a Thread - ThreadSwipes</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h1>Post a Thread</h1>
+
+  <div id="auth-status"></div>
+
+  <form id="thread-form" style="display: none;">
+    <textarea id="thread-content" placeholder="What's on your mind?" required></textarea><br>
+    <button type="submit">Post</button>
+  </form>
+
+  <p id="message"></p>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
+      authDomain: "threadswipes.firebaseapp.com",
+      projectId: "threadswipes",
+      storageBucket: "threadswipes.firebasestorage.app",
+      messagingSenderId: "238965033362",
+      appId: "1:238965033362:web:93b3ada5ccb0b0f1d9994b",
+      measurementId: "G-J49VZR1CH7"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const form = document.getElementById("thread-form");
+    const authStatus = document.getElementById("auth-status");
+    const messageEl = document.getElementById("message");
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        authStatus.innerText = "Logged in as: " + user.email;
+        form.style.display = "block";
+      } else {
+        authStatus.innerHTML = 'You must <a href="index.html">sign in</a> to post.';
+        form.style.display = "none";
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const content = document.getElementById("thread-content").value.trim();
+      if (!content) return;
+
+      const user = auth.currentUser;
+      if (!user) {
+        messageEl.textContent = "You must be signed in to post.";
+        return;
+      }
+
+      try {
+        await db.collection("threads").add({
+          userId: user.uid,
+          content: content,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        messageEl.style.color = "green";
+        messageEl.textContent = "✅ Thread posted!";
+        form.reset();
+      } catch (error) {
+        console.error("Error posting thread:", error);
+        messageEl.style.color = "red";
+        messageEl.textContent = "Error: " + error.message;
+      }
+    });
+  </script>
+</body>
+</html>

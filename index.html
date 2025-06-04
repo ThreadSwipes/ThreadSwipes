@@ -5,49 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ThreadSwipes - Sign Up</title>
 
-  <!-- Firebase scripts first -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
-  <div>
-    <h1>Sign Up for ThreadSwipes</h1>
-    <form id="signup-form">
-      <input type="email" id="email" placeholder="Email" required />
-      <br />
-      <input type="password" id="password" placeholder="Password" required />
-      <br />
-      <button type="submit">Sign Up</button>
-    </form>
-    <p id="message"></p>
-  </div>
+  <h1>Sign Up for ThreadSwipes</h1>
 
-  <!-- ✅ Only run this script AFTER Firebase is loaded -->
+  <form id="signup-form">
+    <input type="email" id="email" placeholder="Email" required /><br/>
+    <input type="password" id="password" placeholder="Password" required /><br/>
+    <button type="submit">Sign Up</button>
+  </form>
+
+  <p id="message"></p>
+  <p>Already have an account? <a href="login.html">Log in here</a>.</p>
+
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
+      authDomain: "threadswipes.firebaseapp.com",
+      projectId: "threadswipes",
+      storageBucket: "threadswipes.firebasestorage.app",
+      messagingSenderId: "238965033362",
+      appId: "1:238965033362:web:93b3ada5ccb0b0f1d9994b",
+      measurementId: "G-J49VZR1CH7"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
     document.addEventListener("DOMContentLoaded", () => {
-      // ✅ Firebase config
-      const firebaseConfig = {
-        apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
-        authDomain: "threadswipes.firebaseapp.com",
-        projectId: "threadswipes",
-        storageBucket: "threadswipes.firebasestorage.app",
-        messagingSenderId: "238965033362",
-        appId: "1:238965033362:web:93b3ada5ccb0b0f1d9994b",
-        measurementId: "G-J49VZR1CH7"
-      };
+      const form = document.getElementById("signup-form");
+      const messageEl = document.getElementById("message");
 
-      // ✅ Initialize Firebase
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-
-      // ✅ Form submission handler
-      const form = document.getElementById('signup-form');
-      const messageEl = document.getElementById('message');
-
-      form.addEventListener('submit', async (e) => {
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
         messageEl.textContent = "Creating account...";
 
         try {
@@ -58,7 +52,6 @@
         } catch (error) {
           console.error("Signup error:", error);
           messageEl.style.color = "red";
-
           switch (error.code) {
             case "auth/weak-password":
               messageEl.textContent = "Password should be at least 6 characters.";

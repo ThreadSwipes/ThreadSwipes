@@ -11,18 +11,22 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
-  <h1>Login to ThreadSwipes</h1>
+  <main>
+    <div class="auth-container">
+      <h2>Login to ThreadSwipes</h2>
 
-  <form id="login-form">
-    <input type="email" id="email" placeholder="Email" required /><br/>
-    <input type="password" id="password" placeholder="Password" required /><br/>
-    <button type="submit">Login</button>
-  </form>
+      <form id="login-form">
+        <input type="email" id="email" placeholder="Email" required />
+        <input type="password" id="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+      </form>
 
-  <p id="message"></p>
+      <p id="message"></p>
+      <p>Don't have an account? <a href="index.html">Sign up</a>.</p>
+    </div>
+  </main>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
       authDomain: "threadswipes.firebaseapp.com",
@@ -33,7 +37,6 @@
       measurementId: "G-J49VZR1CH7"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
@@ -44,6 +47,7 @@
       e.preventDefault();
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+      messageEl.style.color = "#eee";
       messageEl.textContent = "Logging in...";
 
       try {

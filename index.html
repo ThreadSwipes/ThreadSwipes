@@ -5,13 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ThreadSwipes - Sign Up</title>
 
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <h1>Sign Up for ThreadSwipes</h1>
 
   <form id="signup-form">
+    <input type="text" id="username" placeholder="Username" required /><br/>
     <input type="email" id="email" placeholder="Email" required /><br/>
     <input type="password" id="password" placeholder="Password" required /><br/>
     <button type="submit">Sign Up</button>
@@ -21,6 +24,7 @@
   <p>Already have an account? <a href="login.html">Log in here</a>.</p>
 
   <script>
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
       authDomain: "threadswipes.firebaseapp.com",
@@ -31,8 +35,10 @@
       measurementId: "G-J49VZR1CH7"
     };
 
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.firestore();
 
     document.addEventListener("DOMContentLoaded", () => {
       const form = document.getElementById("signup-form");
@@ -40,15 +46,26 @@
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const username = document.getElementById("username").value.trim();
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
+
         messageEl.textContent = "Creating account...";
 
         try {
           const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-          await userCredential.user.sendEmailVerification();
+          const user = userCredential.user;
+
+          // Save username to Firestore
+          await db.collection("users").doc(user.uid).set({
+            username: username,
+            email: email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+          await user.sendEmailVerification();
           messageEl.style.color = "green";
-          messageEl.textContent = "✅ Verification email sent! Please check your inbox.";
+          messageEl.textContent = "✅ Account created! Verification email sent.";
         } catch (error) {
           console.error("Signup error:", error);
           messageEl.style.color = "red";

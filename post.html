@@ -19,6 +19,19 @@
     <div id="thread-display">
       <div id="thread-user"></div>
       <div id="thread-content">Loading threads...</div>
+      <div id="thread-actions">
+        <button id="like-button">❤️ Like</button>
+        <span id="like-count">0 likes</span>
+      </div>
+
+      <div id="comments-section">
+        <h3>Comments</h3>
+        <ul id="comments-list"></ul>
+        <form id="comment-form" style="display:none;">
+          <input type="text" id="comment-input" placeholder="Add a comment..." required />
+          <button type="submit">Post</button>
+        </form>
+      </div>
     </div>
 
     <div id="nav-buttons">
@@ -51,6 +64,12 @@
     const usernameDisplay = document.getElementById('username-display');
     const threadUser = document.getElementById('thread-user');
     const threadContent = document.getElementById('thread-content');
+    const likeBtn = document.getElementById('like-button');
+    const likeCountEl = document.getElementById('like-count');
+    const commentsList = document.getElementById('comments-list');
+    const commentForm = document.getElementById('comment-form');
+    const commentInput = document.getElementById('comment-input');
+
     const prevBtn = document.getElementById('prev-thread');
     const nextBtn = document.getElementById('next-thread');
     const postForm = document.getElementById('post-form');
@@ -75,13 +94,7 @@
         } catch (e) {
           console.error("Error loading username:", e);
         }
-        threads.push({
-          id: doc.id,
-          content: data.content,
-          userId: data.userId,
-          createdAt: data.createdAt,
-          username: username
-        });
+        threads.push({ id: doc.id, content: data.content, userId: data.userId, createdAt: data.createdAt, username });
       }
       if (threads.length === 0) {
         threadUser.textContent = "";
@@ -92,11 +105,13 @@
       }
     }
 
-    function showThread(index) {
+    async function showThread(index) {
       if (threads.length === 0) return;
       const t = threads[index];
       threadUser.textContent = '@' + t.username;
       threadContent.textContent = t.content;
+      await updateLikeUI(t.id);
+      await loadComments(t.id);
     }
 
     function prevThread() {
@@ -111,6 +126,64 @@
       showThread(currentIndex);
     }
 
+    async function updateLikeUI(threadId) {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const likeDoc = await db.collection('threads').doc(threadId).collection('likes').doc(user.uid).get();
+      likeBtn.textContent = likeDoc.exists ? '💔 Unlike' : '❤️ Like';
+
+      const likesSnapshot = await db.collection('threads').doc(threadId).collection('likes').get();
+      likeCountEl.textContent = `${likesSnapshot.size} like${likesSnapshot.size !== 1 ? 's' : ''}`;
+    }
+
+    likeBtn.addEventListener('click', async () => {
+      const user = auth.currentUser;
+      if (!user || threads.length === 0) return;
+
+      const threadId = threads[currentIndex].id;
+      const likeRef = db.collection('threads').doc(threadId).collection('likes').doc(user.uid);
+      const likeDoc = await likeRef.get();
+
+      if (likeDoc.exists) {
+        await likeRef.delete();
+      } else {
+        await likeRef.set({ likedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      }
+
+      updateLikeUI(threadId);
+    });
+
+    async function loadComments(threadId) {
+      const snapshot = await db.collection('threads').doc(threadId).collection('comments').orderBy('createdAt', 'asc').get();
+      commentsList.innerHTML = "";
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const userDoc = await db.collection('users').doc(data.userId).get();
+        const commenter = userDoc.exists ? userDoc.data().username : "Unknown";
+        const li = document.createElement('li');
+        li.textContent = `@${commenter}: ${data.text}`;
+        commentsList.appendChild(li);
+      }
+    }
+
+    commentForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = auth.currentUser;
+      const thread = threads[currentIndex];
+      const text = commentInput.value.trim();
+      if (!user || !text) return;
+
+      await db.collection('threads').doc(thread.id).collection('comments').add({
+        userId: user.uid,
+        text: text,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      commentInput.value = "";
+      await loadComments(thread.id);
+    });
+
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         const userDoc = await db.collection('users').doc(user.uid).get();
@@ -118,14 +191,17 @@
           currentUserData = userDoc.data();
           usernameDisplay.textContent = "@" + (currentUserData.username || "User");
           postForm.style.display = "block";
+          commentForm.style.display = "block";
         } else {
           usernameDisplay.textContent = user.email;
           postForm.style.display = "none";
+          commentForm.style.display = "none";
         }
         loadThreads();
       } else {
         usernameDisplay.textContent = 'Not logged in';
         postForm.style.display = "none";
+        commentForm.style.display = "none";
         threadUser.textContent = "";
         threadContent.textContent = "Please log in to see and post threads.";
       }

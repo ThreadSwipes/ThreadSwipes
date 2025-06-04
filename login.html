@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - ThreadSwipes</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <h1>Login to ThreadSwipes</h1>
+
+  <form id="login-form">
+    <input type="email" id="email" placeholder="Email" required /><br/>
+    <input type="password" id="password" placeholder="Password" required /><br/>
+    <button type="submit">Login</button>
+  </form>
+
+  <p id="message"></p>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
+      authDomain: "threadswipes.firebaseapp.com",
+      projectId: "threadswipes",
+      storageBucket: "threadswipes.firebasestorage.app",
+      messagingSenderId: "238965033362",
+      appId: "1:238965033362:web:93b3ada5ccb0b0f1d9994b",
+      measurementId: "G-J49VZR1CH7"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    const form = document.getElementById('login-form');
+    const messageEl = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      messageEl.textContent = "Logging in...";
+
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        messageEl.style.color = "green";
+        messageEl.textContent = "✅ Login successful! Redirecting...";
+        setTimeout(() => {
+          window.location.href = "post.html";
+        }, 1000);
+      } catch (error) {
+        console.error("Login error:", error);
+        messageEl.style.color = "red";
+        switch (error.code) {
+          case "auth/user-not-found":
+            messageEl.textContent = "No user found with that email.";
+            break;
+          case "auth/wrong-password":
+            messageEl.textContent = "Incorrect password.";
+            break;
+          case "auth/invalid-email":
+            messageEl.textContent = "Invalid email format.";
+            break;
+          default:
+            messageEl.textContent = "Error: " + error.message;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

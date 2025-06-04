@@ -12,20 +12,23 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <h1>Sign Up for ThreadSwipes</h1>
+  <main>
+    <div class="auth-container">
+      <h2>Sign Up for ThreadSwipes</h2>
 
-  <form id="signup-form">
-    <input type="text" id="username" placeholder="Username" required /><br/>
-    <input type="email" id="email" placeholder="Email" required /><br/>
-    <input type="password" id="password" placeholder="Password" required /><br/>
-    <button type="submit">Sign Up</button>
-  </form>
+      <form id="signup-form">
+        <input type="text" id="username" placeholder="Username" required />
+        <input type="email" id="email" placeholder="Email" required />
+        <input type="password" id="password" placeholder="Password" required />
+        <button type="submit">Sign Up</button>
+      </form>
 
-  <p id="message"></p>
-  <p>Already have an account? <a href="login.html">Log in here</a>.</p>
+      <p id="message"></p>
+      <p>Already have an account? <a href="login.html">Log in here</a>.</p>
+    </div>
+  </main>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAlImC9tScXYgde9E6RboIj6YjwgK-BpM4",
       authDomain: "threadswipes.firebaseapp.com",
@@ -36,7 +39,6 @@
       measurementId: "G-J49VZR1CH7"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
@@ -51,16 +53,16 @@
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
 
+        messageEl.style.color = "#eee";
         messageEl.textContent = "Creating account...";
 
         try {
           const userCredential = await auth.createUserWithEmailAndPassword(email, password);
           const user = userCredential.user;
 
-          // Save username to Firestore
           await db.collection("users").doc(user.uid).set({
-            username: username,
-            email: email,
+            username,
+            email,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
 
